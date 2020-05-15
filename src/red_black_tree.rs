@@ -168,6 +168,7 @@ mod tests {
     fn test_red_black_tree() {
         let mut tree = RedBlackTree::new();
         for i in 0..100 {
+            let i = (i % 10) * 10 + (i / 10);
             if i % 2 == 0 {
                 assert_eq!(tree.insert(i), true);
             }
