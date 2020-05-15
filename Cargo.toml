@@ -1,0 +1,7 @@
+[package]
+name = "sig-datastructures-2020"
+version = "0.1.0"
+authors = ["n4p847"]
+edition = "2018"
+
+[dependencies]
