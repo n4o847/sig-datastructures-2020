@@ -91,7 +91,10 @@ where
                                     )),
                                 )
                             }
-                            _ => unreachable!(),
+                            (left_left, left_right) => (
+                                false,
+                                Box::new(Red(v, Box::new(left_left), Box::new(left_right))),
+                            ),
                         },
                         _ => unreachable!(),
                     }
@@ -128,7 +131,10 @@ where
                                     )),
                                 )
                             }
-                            _ => unreachable!(),
+                            (right_left, right_right) => (
+                                false,
+                                Box::new(Red(v, Box::new(right_left), Box::new(right_right))),
+                            ),
                         },
                         _ => unreachable!(),
                     }
@@ -145,22 +151,18 @@ where
             return false;
         }
         match *root {
-            Nil => unreachable!(),
             Red(node_value, left, right) => {
                 self.root = Box::new(Black(node_value, left, right));
                 true
             }
-            Black(node_value, left, right) => {
-                self.root = Box::new(Black(node_value, left, right));
-                true
-            }
+            _ => unreachable!(),
         }
     }
 }
 
 #[test]
 fn test_red_black_tree() {
-    let tree = RedBlackTree::new();
+    let mut tree = RedBlackTree::new();
     tree.insert(1);
     assert_eq!(tree.contains(1), true);
     assert_eq!(tree.contains(2), false);
