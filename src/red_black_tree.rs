@@ -1,5 +1,9 @@
-use std::cmp::{Ord, Ordering};
+use std::cmp::{
+    Ord,
+    Ordering::{Equal, Greater, Less},
+};
 use std::fmt;
+use Node::{Black, Nil, Red};
 
 enum Node<T: Ord> {
     Nil,
@@ -11,8 +15,6 @@ pub struct RedBlackTree<T: Ord> {
     root: Box<Node<T>>,
 }
 
-use Node::{Black, Nil, Red};
-
 impl<T: Ord> RedBlackTree<T> {
     pub fn new() -> Self {
         Self {
@@ -22,12 +24,12 @@ impl<T: Ord> RedBlackTree<T> {
 
     fn contains_inner(node: &Node<T>, value: T) -> bool {
         match node {
-            Nil => return false,
+            Nil => false,
             Red(node_value, left, right) | Black(node_value, left, right) => {
                 match value.cmp(&node_value) {
-                    Ordering::Less => Self::contains_inner(left, value),
-                    Ordering::Equal => true,
-                    Ordering::Greater => Self::contains_inner(right, value),
+                    Less => Self::contains_inner(left, value),
+                    Equal => true,
+                    Greater => Self::contains_inner(right, value),
                 }
             }
         }
@@ -45,72 +47,56 @@ impl<T: Ord> RedBlackTree<T> {
         match *node {
             Nil => (true, red(value, nil(), nil())),
             Red(node_value, left, right) => match value.cmp(&node_value) {
-                Ordering::Less => {
+                Less => {
                     let (changed, left) = Self::insert_inner(left, value);
                     (changed, red(node_value, left, right))
                 }
-                Ordering::Equal => (false, red(node_value, left, right)),
-                Ordering::Greater => {
+                Equal => (false, red(node_value, left, right)),
+                Greater => {
                     let (changed, right) = Self::insert_inner(right, value);
                     (changed, red(node_value, left, right))
                 }
             },
             Black(node_value, left, right) => match value.cmp(&node_value) {
-                Ordering::Less => {
+                Less => {
                     let (changed, left) = Self::insert_inner(left, value);
                     if !changed {
                         return (false, black(node_value, left, right));
                     }
-                    let u = node_value;
-                    let t4 = right;
-                    match *left {
+                    let (v, l, r) = (node_value, left, right);
+                    match *l {
                         Nil => unreachable!(),
-                        Red(v, left_left, left_right) => match (*left_left, *left_right) {
-                            (Red(w, t1, t2), left_right) => {
-                                let t3 = Box::new(left_right);
-                                (true, red(v, black(w, t1, t2), black(u, t3, t4)))
+                        Red(lv, ll, lr) => {
+                            if let Red(llv, lll, llr) = *ll {
+                                (true, red(lv, black(llv, lll, llr), black(v, lr, r)))
+                            } else if let Red(lrv, lrl, lrr) = *lr {
+                                (true, red(lrv, black(lv, ll, lrl), black(v, lrr, r)))
+                            } else {
+                                (true, black(v, red(lv, ll, lr), r))
                             }
-                            (left_left, Red(w, t2, t3)) => {
-                                let t1 = Box::new(left_left);
-                                (true, red(w, black(v, t1, t2), black(u, t3, t4)))
-                            }
-                            (left_left, left_right) => (
-                                true,
-                                black(u, red(v, Box::new(left_left), Box::new(left_right)), t4),
-                            ),
-                        },
-                        Black(v, left_left, left_right) => {
-                            (true, black(u, black(v, left_left, left_right), t4))
                         }
+                        Black(lv, ll, lr) => (true, black(v, black(lv, ll, lr), r)),
                     }
                 }
-                Ordering::Equal => (false, black(node_value, left, right)),
-                Ordering::Greater => {
+                Equal => (false, black(node_value, left, right)),
+                Greater => {
                     let (changed, right) = Self::insert_inner(right, value);
                     if !changed {
                         return (false, black(node_value, left, right));
                     }
-                    let u = node_value;
-                    let t1 = left;
-                    match *right {
+                    let (v, l, r) = (node_value, left, right);
+                    match *r {
                         Nil => unreachable!(),
-                        Red(v, right_left, right_right) => match (*right_left, *right_right) {
-                            (Red(w, t2, t3), right_right) => {
-                                let t4 = Box::new(right_right);
-                                (true, red(w, black(u, t1, t2), black(v, t3, t4)))
+                        Red(rv, rl, rr) => {
+                            if let Red(rlv, rll, rlr) = *rl {
+                                (true, red(rlv, black(v, l, rll), black(rv, rlr, rr)))
+                            } else if let Red(rrv, rrl, rrr) = *rr {
+                                (true, red(rv, black(v, l, rl), black(rrv, rrl, rrr)))
+                            } else {
+                                (true, black(v, l, red(rv, rl, rr)))
                             }
-                            (right_left, Red(w, t3, t4)) => {
-                                let t2 = Box::new(right_left);
-                                (true, red(v, black(u, t1, t2), black(w, t3, t4)))
-                            }
-                            (right_left, right_right) => (
-                                true,
-                                black(u, t1, red(v, Box::new(right_left), Box::new(right_right))),
-                            ),
-                        },
-                        Black(v, right_left, right_right) => {
-                            (true, black(u, t1, black(v, right_left, right_right)))
                         }
+                        Black(rv, rl, rr) => (true, black(v, l, black(rv, rl, rr))),
                     }
                 }
             },
