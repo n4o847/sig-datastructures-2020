@@ -17,9 +17,7 @@ pub struct RedBlackTree<T: Ord> {
 
 impl<T: Ord> RedBlackTree<T> {
     pub fn new() -> Self {
-        Self {
-            root: Box::new(Nil),
-        }
+        Self { root: box Nil }
     }
 
     fn contains_inner(node: &Node<T>, value: T) -> bool {
@@ -40,59 +38,55 @@ impl<T: Ord> RedBlackTree<T> {
     }
 
     fn insert_inner(node: Box<Node<T>>, value: T) -> (bool, Box<Node<T>>) {
-        let nil = || Box::new(Nil);
-        let red = |value, left, right| Box::new(Red(value, left, right));
-        let black = |value, left, right| Box::new(Black(value, left, right));
-
-        match *node {
-            Nil => (true, red(value, nil(), nil())),
-            Red(node_value, left, right) => match value.cmp(&node_value) {
+        match node {
+            box Nil => (true, box Red(value, box Nil, box Nil)),
+            box Red(node_value, left, right) => match value.cmp(&node_value) {
                 Less => {
                     let (changed, left) = Self::insert_inner(left, value);
-                    (changed, red(node_value, left, right))
+                    (changed, box Red(node_value, left, right))
                 }
-                Equal => (false, red(node_value, left, right)),
+                Equal => (false, box Red(node_value, left, right)),
                 Greater => {
                     let (changed, right) = Self::insert_inner(right, value);
-                    (changed, red(node_value, left, right))
+                    (changed, box Red(node_value, left, right))
                 }
             },
-            Black(node_value, left, right) => match value.cmp(&node_value) {
+            box Black(node_value, left, right) => match value.cmp(&node_value) {
                 Less => {
                     let (changed, left) = Self::insert_inner(left, value);
                     if !changed {
-                        return (false, black(node_value, left, right));
+                        return (false, box Black(node_value, left, right));
                     }
                     let (v, l, r) = (node_value, left, right);
-                    if let Red(lv, ll, lr) = *l {
-                        if let Red(llv, lll, llr) = *ll {
-                            (true, red(lv, black(llv, lll, llr), black(v, lr, r)))
-                        } else if let Red(lrv, lrl, lrr) = *lr {
-                            (true, red(lrv, black(lv, ll, lrl), black(v, lrr, r)))
-                        } else {
-                            (true, black(v, red(lv, ll, lr), r))
-                        }
-                    } else {
-                        (true, black(v, l, r))
+                    match l {
+                        box Red(lv, box Red(llv, lll, llr), lr) => (
+                            true,
+                            box Red(lv, box Black(llv, lll, llr), box Black(v, lr, r)),
+                        ),
+                        box Red(lv, ll, box Red(lrv, lrl, lrr)) => (
+                            true,
+                            box Red(lrv, box Black(lv, ll, lrl), box Black(v, lrr, r)),
+                        ),
+                        l => (true, box Black(v, l, r)),
                     }
                 }
-                Equal => (false, black(node_value, left, right)),
+                Equal => (false, box Black(node_value, left, right)),
                 Greater => {
                     let (changed, right) = Self::insert_inner(right, value);
                     if !changed {
-                        return (false, black(node_value, left, right));
+                        return (false, box Black(node_value, left, right));
                     }
                     let (v, l, r) = (node_value, left, right);
-                    if let Red(rv, rl, rr) = *r {
-                        if let Red(rlv, rll, rlr) = *rl {
-                            (true, red(rlv, black(v, l, rll), black(rv, rlr, rr)))
-                        } else if let Red(rrv, rrl, rrr) = *rr {
-                            (true, red(rv, black(v, l, rl), black(rrv, rrl, rrr)))
-                        } else {
-                            (true, black(v, l, red(rv, rl, rr)))
-                        }
-                    } else {
-                        (true, black(v, l, r))
+                    match r {
+                        box Red(rv, box Red(rlv, rll, rlr), rr) => (
+                            true,
+                            box Red(rlv, box Black(v, l, rll), box Black(rv, rlr, rr)),
+                        ),
+                        box Red(rv, rl, box Red(rrv, rrl, rrr)) => (
+                            true,
+                            box Red(rv, box Black(v, l, rl), box Black(rrv, rrl, rrr)),
+                        ),
+                        r => (true, box Black(v, l, r)),
                     }
                 }
             },
@@ -100,16 +94,16 @@ impl<T: Ord> RedBlackTree<T> {
     }
 
     pub fn insert(&mut self, value: T) -> bool {
-        let root = std::mem::replace(&mut self.root, Box::new(Nil));
+        let root = std::mem::replace(&mut self.root, box Nil);
         let (changed, root) = Self::insert_inner(root, value);
         if !changed {
             self.root = root;
             return false;
         }
-        match *root {
-            Nil => unreachable!(),
-            Red(node_value, left, right) | Black(node_value, left, right) => {
-                self.root = Box::new(Black(node_value, left, right));
+        match root {
+            box Nil => unreachable!(),
+            box Red(node_value, left, right) | box Black(node_value, left, right) => {
+                self.root = box Black(node_value, left, right);
                 true
             }
         }
