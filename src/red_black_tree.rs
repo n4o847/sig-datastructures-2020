@@ -51,44 +51,30 @@ impl<T: Ord> RedBlackTree<T> {
                     (changed, box Red(node_value, left, right))
                 }
             },
-            box Black(node_value, left, right) => match value.cmp(&node_value) {
-                Less => {
-                    let (changed, left) = Self::insert_inner(left, value);
-                    if !changed {
-                        return (false, box Black(node_value, left, right));
-                    }
-                    let (v, l, r) = (node_value, left, right);
-                    match l {
-                        box Red(lv, box Red(llv, lll, llr), lr) => (
-                            true,
-                            box Red(lv, box Black(llv, lll, llr), box Black(v, lr, r)),
-                        ),
-                        box Red(lv, ll, box Red(lrv, lrl, lrr)) => (
-                            true,
-                            box Red(lrv, box Black(lv, ll, lrl), box Black(v, lrr, r)),
-                        ),
-                        l => (true, box Black(v, l, r)),
-                    }
-                }
-                Equal => (false, box Black(node_value, left, right)),
-                Greater => {
-                    let (changed, right) = Self::insert_inner(right, value);
-                    if !changed {
-                        return (false, box Black(node_value, left, right));
-                    }
-                    let (v, l, r) = (node_value, left, right);
-                    match r {
-                        box Red(rv, box Red(rlv, rll, rlr), rr) => (
-                            true,
-                            box Red(rlv, box Black(v, l, rll), box Black(rv, rlr, rr)),
-                        ),
-                        box Red(rv, rl, box Red(rrv, rrl, rrr)) => (
-                            true,
-                            box Red(rv, box Black(v, l, rl), box Black(rrv, rrl, rrr)),
-                        ),
-                        r => (true, box Black(v, l, r)),
-                    }
-                }
+            box Black(v, l, r) => match value.cmp(&v) {
+                Less => match Self::insert_inner(l, value) {
+                    (true, box Red(lv, box Red(llv, lll, llr), lr)) => (
+                        true,
+                        box Red(lv, box Black(llv, lll, llr), box Black(v, lr, r)),
+                    ),
+                    (true, box Red(lv, ll, box Red(lrv, lrl, lrr))) => (
+                        true,
+                        box Red(lrv, box Black(lv, ll, lrl), box Black(v, lrr, r)),
+                    ),
+                    (changed, l) => (changed, box Black(v, l, r)),
+                },
+                Equal => (false, box Black(v, l, r)),
+                Greater => match Self::insert_inner(r, value) {
+                    (true, box Red(rv, box Red(rlv, rll, rlr), rr)) => (
+                        true,
+                        box Red(rlv, box Black(v, l, rll), box Black(rv, rlr, rr)),
+                    ),
+                    (true, box Red(rv, rl, box Red(rrv, rrl, rrr))) => (
+                        true,
+                        box Red(rv, box Black(v, l, rl), box Black(rrv, rrl, rrr)),
+                    ),
+                    (changed, r) => (changed, box Black(v, l, r)),
+                },
             },
         }
     }
