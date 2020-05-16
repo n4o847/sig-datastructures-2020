@@ -40,16 +40,14 @@ impl<T: Ord> RedBlackTree<T> {
     fn insert_inner(node: Box<Node<T>>, value: T) -> (bool, Box<Node<T>>) {
         match node {
             box Nil => (true, box Red(value, box Nil, box Nil)),
-            box Red(node_value, left, right) => match value.cmp(&node_value) {
-                Less => {
-                    let (changed, left) = Self::insert_inner(left, value);
-                    (changed, box Red(node_value, left, right))
-                }
-                Equal => (false, box Red(node_value, left, right)),
-                Greater => {
-                    let (changed, right) = Self::insert_inner(right, value);
-                    (changed, box Red(node_value, left, right))
-                }
+            box Red(v, l, r) => match value.cmp(&v) {
+                Less => match Self::insert_inner(l, value) {
+                    (changed, l) => (changed, box Red(v, l, r)),
+                },
+                Equal => (false, box Red(v, l, r)),
+                Greater => match Self::insert_inner(r, value) {
+                    (changed, r) => (changed, box Red(v, l, r)),
+                },
             },
             box Black(v, l, r) => match value.cmp(&v) {
                 Less => match Self::insert_inner(l, value) {
