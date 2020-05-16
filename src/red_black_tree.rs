@@ -18,7 +18,7 @@ pub struct RedBlackTree<T: Ord> {
 impl<T: Ord> RedBlackTree<T> {
     pub fn new() -> Self {
         Self {
-            root: Box::new(Node::Nil),
+            root: Box::new(Nil),
         }
     }
 
@@ -64,18 +64,16 @@ impl<T: Ord> RedBlackTree<T> {
                         return (false, black(node_value, left, right));
                     }
                     let (v, l, r) = (node_value, left, right);
-                    match *l {
-                        Nil => unreachable!(),
-                        Red(lv, ll, lr) => {
-                            if let Red(llv, lll, llr) = *ll {
-                                (true, red(lv, black(llv, lll, llr), black(v, lr, r)))
-                            } else if let Red(lrv, lrl, lrr) = *lr {
-                                (true, red(lrv, black(lv, ll, lrl), black(v, lrr, r)))
-                            } else {
-                                (true, black(v, red(lv, ll, lr), r))
-                            }
+                    if let Red(lv, ll, lr) = *l {
+                        if let Red(llv, lll, llr) = *ll {
+                            (true, red(lv, black(llv, lll, llr), black(v, lr, r)))
+                        } else if let Red(lrv, lrl, lrr) = *lr {
+                            (true, red(lrv, black(lv, ll, lrl), black(v, lrr, r)))
+                        } else {
+                            (true, black(v, red(lv, ll, lr), r))
                         }
-                        Black(lv, ll, lr) => (true, black(v, black(lv, ll, lr), r)),
+                    } else {
+                        (true, black(v, l, r))
                     }
                 }
                 Equal => (false, black(node_value, left, right)),
@@ -85,18 +83,16 @@ impl<T: Ord> RedBlackTree<T> {
                         return (false, black(node_value, left, right));
                     }
                     let (v, l, r) = (node_value, left, right);
-                    match *r {
-                        Nil => unreachable!(),
-                        Red(rv, rl, rr) => {
-                            if let Red(rlv, rll, rlr) = *rl {
-                                (true, red(rlv, black(v, l, rll), black(rv, rlr, rr)))
-                            } else if let Red(rrv, rrl, rrr) = *rr {
-                                (true, red(rv, black(v, l, rl), black(rrv, rrl, rrr)))
-                            } else {
-                                (true, black(v, l, red(rv, rl, rr)))
-                            }
+                    if let Red(rv, rl, rr) = *r {
+                        if let Red(rlv, rll, rlr) = *rl {
+                            (true, red(rlv, black(v, l, rll), black(rv, rlr, rr)))
+                        } else if let Red(rrv, rrl, rrr) = *rr {
+                            (true, red(rv, black(v, l, rl), black(rrv, rrl, rrr)))
+                        } else {
+                            (true, black(v, l, red(rv, rl, rr)))
                         }
-                        Black(rv, rl, rr) => (true, black(v, l, black(rv, rl, rr))),
+                    } else {
+                        (true, black(v, l, r))
                     }
                 }
             },
