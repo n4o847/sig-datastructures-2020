@@ -17,25 +17,19 @@ impl<T: Ord> MeldableHeap<T> {
     }
 
     fn merge(mut h1: Option<Box<Node<T>>>, mut h2: Option<Box<Node<T>>>) -> Option<Box<Node<T>>> {
-        match (&mut h1, &mut h2) {
-            (None, _) => {
-                return h2;
-            }
-            (_, None) => {
-                return h1;
-            }
-            (Some(b1), Some(b2)) if b1.value > b2.value => {
-                return Self::merge(h2, h1);
-            }
+        match (h1.as_mut(), h2.as_mut()) {
+            (None, _) => h2,
+            (_, None) => h1,
+            (Some(b1), Some(b2)) if b1.value > b2.value => Self::merge(h2, h1),
             (Some(b1), _) => {
                 if rand::random() {
                     b1.left = Self::merge(b1.left.take(), h2);
                 } else {
                     b1.right = Self::merge(b1.right.take(), h2);
                 }
-                return h1;
+                h1
             }
-        };
+        }
     }
 
     // より Rust らしい実装
@@ -60,15 +54,13 @@ impl<T: Ord> MeldableHeap<T> {
     // 本では remove() となっている
     pub fn pop(&mut self) -> Option<T> {
         match self.root.take() {
-            None => {
-                return None;
-            }
+            None => None,
             Some(b) => {
                 self.root = Self::merge(b.left, b.right);
                 self.len -= 1;
-                return Some(b.value);
+                Some(b.value)
             }
-        };
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -108,17 +100,20 @@ mod tests {
     fn test_meldable_heap() {
         let mut h1 = MeldableHeap::new();
         for i in 0..16 {
-            h1.insert(i);
+            h1.insert(i * 2);
         }
         dbg!(&h1);
         let mut h2 = MeldableHeap::new();
         for i in 0..16 {
-            h2.insert(i);
+            h2.insert(i * 2 + 1);
         }
         dbg!(&h2);
         h1.append(&mut h2);
+        assert!(h2.is_empty());
         dbg!(&h1);
         assert_eq!(h1.pop(), Some(0));
-        assert!(h2.is_empty());
+        assert_eq!(h1.pop(), Some(1));
+        assert_eq!(h1.pop(), Some(2));
+        dbg!(&h1);
     }
 }
