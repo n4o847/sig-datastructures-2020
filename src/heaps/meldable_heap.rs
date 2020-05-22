@@ -2,17 +2,17 @@ use std::cmp::Ord;
 use std::fmt;
 use std::mem;
 
-enum Tree<T: Ord> {
+enum Node<T: Ord> {
     Nil,
-    Node(T, Box<Tree<T>>, Box<Tree<T>>),
+    Cons(T, Box<Node<T>>, Box<Node<T>>),
 }
 
 pub struct MeldableHeap<T: Ord> {
-    root: Box<Tree<T>>,
+    root: Box<Node<T>>,
     len: usize,
 }
 
-use Tree::{Nil, Node};
+use Node::{Cons, Nil};
 
 impl<T: Ord> MeldableHeap<T> {
     pub fn new() -> Self {
@@ -22,7 +22,7 @@ impl<T: Ord> MeldableHeap<T> {
         }
     }
 
-    fn merge(mut h1: Box<Tree<T>>, mut h2: Box<Tree<T>>) -> Box<Tree<T>> {
+    fn merge(mut h1: Box<Node<T>>, mut h2: Box<Node<T>>) -> Box<Node<T>> {
         match (h1.as_mut(), h2.as_mut()) {
             (Nil, _) => {
                 return h2;
@@ -30,10 +30,10 @@ impl<T: Ord> MeldableHeap<T> {
             (_, Nil) => {
                 return h1;
             }
-            (Node(ref v1, _, _), Node(ref v2, _, _)) if v1 > v2 => {
+            (Cons(ref v1, _, _), Cons(ref v2, _, _)) if v1 > v2 => {
                 return Self::merge(h2, h1);
             }
-            (Node(_, l, r), _) => {
+            (Cons(_, l, r), _) => {
                 if rand::random() {
                     let owned_l = mem::replace(l, Box::new(Nil));
                     *l = Self::merge(owned_l, h2);
@@ -58,7 +58,7 @@ impl<T: Ord> MeldableHeap<T> {
 
     // 本では add() となっている
     pub fn insert(&mut self, value: T) {
-        let node = Box::new(Node(value, Box::new(Nil), Box::new(Nil)));
+        let node = Box::new(Cons(value, Box::new(Nil), Box::new(Nil)));
         let owned_root = mem::replace(&mut self.root, Box::new(Nil));
         self.root = Self::merge(node, owned_root);
         self.len += 1;
@@ -71,7 +71,7 @@ impl<T: Ord> MeldableHeap<T> {
             Nil => {
                 return None;
             }
-            Node(v, l, r) => {
+            Cons(v, l, r) => {
                 self.root = Self::merge(l, r);
                 self.len -= 1;
                 return Some(v);
@@ -84,7 +84,7 @@ impl<T: Ord> MeldableHeap<T> {
     }
 
     pub fn is_empty(&self) -> bool {
-        matches!(*self.root, Tree::Nil)
+        matches!(*self.root, Node::Nil)
     }
 }
 
@@ -96,7 +96,7 @@ impl<T: Ord + fmt::Debug> fmt::Debug for MeldableHeap<T> {
         while let Some((d, node)) = stack.pop() {
             match node.as_ref() {
                 Nil => {}
-                Node(v, l, r) => {
+                Cons(v, l, r) => {
                     write!(f, "{}", "    ".repeat(1 + d))?;
                     writeln!(f, "{:?}", v)?;
                     stack.push((d + 1, r));
