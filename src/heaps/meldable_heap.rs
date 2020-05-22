@@ -1,6 +1,5 @@
 use std::cmp::Ord;
 use std::fmt;
-use std::mem;
 
 struct Node<T: Ord> {
     value: T,
@@ -31,11 +30,9 @@ impl<T: Ord> MeldableHeap<T> {
             }
             (Some(b1), _) => {
                 if rand::random() {
-                    let owned_l = mem::replace(&mut b1.left, None);
-                    b1.left = Self::merge(owned_l, h2);
+                    b1.left = Self::merge(b1.left.take(), h2);
                 } else {
-                    let owned_r = mem::replace(&mut b1.right, None);
-                    b1.right = Self::merge(owned_r, h2);
+                    b1.right = Self::merge(b1.right.take(), h2);
                 }
                 return h1;
             }
@@ -45,9 +42,7 @@ impl<T: Ord> MeldableHeap<T> {
     // より Rust らしい実装
     // 本では absorb() となっている
     pub fn append(&mut self, other: &mut MeldableHeap<T>) {
-        let owned_root = mem::replace(&mut self.root, None);
-        let owned_other_root = mem::replace(&mut other.root, None);
-        self.root = Self::merge(owned_root, owned_other_root);
+        self.root = Self::merge(self.root.take(), other.root.take());
         self.len += other.len;
         other.len = 0;
     }
@@ -59,23 +54,20 @@ impl<T: Ord> MeldableHeap<T> {
             left: None,
             right: None,
         }));
-        let owned_root = mem::replace(&mut self.root, None);
-        self.root = Self::merge(node, owned_root);
+        self.root = Self::merge(node, self.root.take());
         self.len += 1;
     }
 
     // 本では remove() となっている
     pub fn pop(&mut self) -> Option<T> {
-        let owned_root = mem::replace(&mut self.root, None);
-        match owned_root {
+        match self.root.take() {
             None => {
                 return None;
             }
             Some(b) => {
-                let Node { value, left, right } = *b;
-                self.root = Self::merge(left, right);
+                self.root = Self::merge(b.left, b.right);
                 self.len -= 1;
-                return Some(value);
+                return Some(b.value);
             }
         };
     }
