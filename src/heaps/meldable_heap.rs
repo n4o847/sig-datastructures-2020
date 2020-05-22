@@ -1,4 +1,3 @@
-use std::cmp::Ord;
 use std::fmt;
 
 struct Node<T: Ord> {
