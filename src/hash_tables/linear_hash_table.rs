@@ -64,23 +64,23 @@ impl<T: Hashable + Eq> LinearHashTable<T> {
         true
     }
 
-    pub fn remove(&mut self, x: &T) -> Option<T> {
+    // 説明では返り値は bool と言っているのにコードでは T を返している？
+    pub fn remove(&mut self, x: &T) -> bool {
         let mut i = x.hash();
         while self.t[i] != Item::Null {
             if let Item::Value(y) = &self.t[i] {
                 if y == x {
-                    if let Item::Value(y) = mem::replace(&mut self.t[i], Item::Del) {
-                        self.n -= 1;
-                        if 8 * self.n < self.t.len() {
-                            self.resize();
-                        }
-                        return Some(y);
+                    self.t[i] = Item::Del;
+                    self.n -= 1;
+                    if 8 * self.n < self.t.len() {
+                        self.resize();
                     }
+                    return true;
                 }
             }
             i = if i + 1 == self.t.len() { 0 } else { i + 1 };
         }
-        None
+        false
     }
 
     fn resize(&mut self) {
@@ -132,7 +132,7 @@ mod tests {
         assert_eq!(h.len(), 2);
 
         // remove 0
-        assert_eq!(h.remove(&0), Some(0));
+        assert_eq!(h.remove(&0), true);
         assert_eq!(h.get(&0), None);
         assert_eq!(h.len(), 1);
 
@@ -142,7 +142,7 @@ mod tests {
         assert_eq!(h.len(), 1);
 
         // remove 0
-        assert_eq!(h.remove(&0), None);
+        assert_eq!(h.remove(&0), false);
         assert_eq!(h.get(&0), None);
         assert_eq!(h.len(), 1);
     }
