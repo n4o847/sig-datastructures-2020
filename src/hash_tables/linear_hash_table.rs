@@ -88,20 +88,20 @@ impl<T: Hashable + Eq> LinearHashTable<T> {
         while 1 << d < 3 * self.n {
             d += 1;
         }
-        let mut t = Vec::with_capacity(1 << d);
-        t.resize_with(1 << d, || Item::Null);
+        let mut t_new = Vec::with_capacity(1 << d);
+        t_new.resize_with(1 << d, || Item::Null);
         self.q = self.n;
         self.d = d;
-        for item in self.t.iter_mut() {
-            if let Item::Value(x) = item {
+        let t_old = mem::replace(&mut self.t, t_new);
+        for item in t_old {
+            if let Item::Value(x) = &item {
                 let mut i = x.hash();
-                while t[i] != Item::Null {
-                    i = if i + 1 == t.len() { 0 } else { i + 1 };
+                while self.t[i] != Item::Null {
+                    i = if i + 1 == self.t.len() { 0 } else { i + 1 };
                 }
-                t[i] = mem::replace(item, Item::Null);
+                self.t[i] = item;
             }
         }
-        self.t = t;
     }
 
     pub fn len(&self) -> usize {
