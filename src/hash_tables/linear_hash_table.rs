@@ -92,13 +92,13 @@ impl<T: Hashable + Eq> LinearHashTable<T> {
         t.resize_with(1 << d, || Item::Null);
         self.q = self.n;
         self.d = d;
-        for k in 0..self.t.len() {
-            if let Item::Value(x) = &self.t[k] {
+        for item in self.t.iter_mut() {
+            if let Item::Value(x) = item {
                 let mut i = x.hash();
                 while t[i] != Item::Null {
                     i = if i + 1 == t.len() { 0 } else { i + 1 };
                 }
-                t[i] = mem::replace(&mut self.t[k], Item::Null);
+                t[i] = mem::replace(item, Item::Null);
             }
         }
         self.t = t;
