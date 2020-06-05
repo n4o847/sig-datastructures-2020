@@ -1,4 +1,5 @@
 use rand::Rng;
+use std::fmt;
 use std::mem;
 
 pub struct LinearHashTable<T> {
@@ -125,6 +126,30 @@ impl<T: Hashable + Eq> LinearHashTable<T> {
     }
 }
 
+impl<T: fmt::Debug> fmt::Debug for Item<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Item::Value(x) => write!(f, "{:?}", x),
+            Item::Null => write!(f, "Null"),
+            Item::Del => write!(f, "Del"),
+        }
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for LinearHashTable<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[")?;
+        let mut iter = self.t.iter();
+        if let Some(item) = iter.next() {
+            write!(f, "{:?}", item)?;
+            for item in iter {
+                write!(f, ", {:?}", item)?;
+            }
+        }
+        writeln!(f, "]")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Hashable, LinearHashTable};
@@ -165,6 +190,8 @@ mod tests {
         assert_eq!(h.remove(&0), false);
         assert_eq!(h.get(&0), None);
         assert_eq!(h.len(), 1);
+
+        dbg!(h);
     }
 
     #[test]
@@ -179,5 +206,7 @@ mod tests {
         for i in 0..100 {
             assert_eq!(h.get(&i).is_some(), i % 2 == 0);
         }
+
+        dbg!(h);
     }
 }
