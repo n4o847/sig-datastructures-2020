@@ -126,13 +126,13 @@ impl<T: Ord + fmt::Debug> fmt::Debug for RedBlackTree<T> {
                 Nil => (),
                 Red(value, left, right) => {
                     write!(f, "{}", "    ".repeat(1 + depth))?;
-                    writeln!(f, "Red({:?})", value)?;
+                    writeln!(f, "\x1b[31m{:?}\x1b[m", value)?;
                     stack.push((depth + 1, right));
                     stack.push((depth + 1, left));
                 }
                 Black(value, left, right) => {
                     write!(f, "{}", "    ".repeat(1 + depth))?;
-                    writeln!(f, "Black({:?})", value)?;
+                    writeln!(f, "{:?}", value)?;
                     stack.push((depth + 1, right));
                     stack.push((depth + 1, left));
                 }
