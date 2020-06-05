@@ -1,3 +1,4 @@
+use rand::Rng;
 use std::mem;
 
 pub struct LinearHashTable<T> {
@@ -5,6 +6,7 @@ pub struct LinearHashTable<T> {
     n: usize, // 値の個数
     q: usize, // null でない値の個数
     d: usize, // t.len() == 1 << d
+    tab: [Vec<usize>; 4],
 }
 
 #[derive(PartialEq)]
@@ -15,24 +17,38 @@ enum Item<T> {
 }
 
 pub trait Hashable {
-    fn hash(&self) -> usize {
-        0
-    }
+    fn hash_code(&self) -> usize;
 }
 
 impl<T: Hashable + Eq> LinearHashTable<T> {
     pub fn new() -> Self {
+        let mut rng = rand::thread_rng();
         LinearHashTable {
             t: vec![Item::Null],
             n: 0,
             q: 0,
             d: 0,
+            tab: [
+                (0..256).map(|_| rng.gen()).collect::<Vec<usize>>(),
+                (0..256).map(|_| rng.gen()).collect::<Vec<usize>>(),
+                (0..256).map(|_| rng.gen()).collect::<Vec<usize>>(),
+                (0..256).map(|_| rng.gen()).collect::<Vec<usize>>(),
+            ],
         }
+    }
+
+    fn hash(&self, x: &T) -> usize {
+        let h = x.hash_code();
+        (self.tab[0][h & 0xff]
+            ^ self.tab[1][(h >> 8) & 0xff]
+            ^ self.tab[2][(h >> 16) & 0xff]
+            ^ self.tab[3][(h >> 24) & 0xff])
+            & ((1 << self.d) - 1)
     }
 
     // 本では find() となっている
     fn get(&self, x: &T) -> Option<&T> {
-        let mut i = x.hash();
+        let mut i = self.hash(x);
         while self.t[i] != Item::Null {
             if let Item::Value(y) = &self.t[i] {
                 if y == x {
@@ -52,7 +68,7 @@ impl<T: Hashable + Eq> LinearHashTable<T> {
         if 2 * (self.q + 1) > self.t.len() {
             self.resize();
         }
-        let mut i = x.hash();
+        let mut i = self.hash(&x);
         while self.t[i] != Item::Null && self.t[i] != Item::Del {
             i = if i + 1 == self.t.len() { 0 } else { i + 1 };
         }
@@ -66,7 +82,7 @@ impl<T: Hashable + Eq> LinearHashTable<T> {
 
     // 説明では返り値は bool と言っているのにコードでは T を返している？
     pub fn remove(&mut self, x: &T) -> bool {
-        let mut i = x.hash();
+        let mut i = self.hash(x);
         while self.t[i] != Item::Null {
             if let Item::Value(y) = &self.t[i] {
                 if y == x {
@@ -95,7 +111,7 @@ impl<T: Hashable + Eq> LinearHashTable<T> {
         let t_old = mem::replace(&mut self.t, t_new);
         for item in t_old {
             if let Item::Value(x) = &item {
-                let mut i = x.hash();
+                let mut i = self.hash(x);
                 while self.t[i] != Item::Null {
                     i = if i + 1 == self.t.len() { 0 } else { i + 1 };
                 }
@@ -113,7 +129,11 @@ impl<T: Hashable + Eq> LinearHashTable<T> {
 mod tests {
     use super::{Hashable, LinearHashTable};
 
-    impl Hashable for i32 {}
+    impl Hashable for i32 {
+        fn hash_code(&self) -> usize {
+            *self as usize
+        }
+    }
 
     #[test]
     fn test_linear_hash_table_hand() {
