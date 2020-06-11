@@ -152,15 +152,9 @@ impl<T: Ord> Node<T> {
             return true;
         } else {
             let changed = match value.cmp(self.value()) {
-                Less => {
-                    let changed = self.left_mut().insert(value);
-                    changed
-                }
+                Less => self.left_mut().insert(value),
                 Equal => false,
-                Greater => {
-                    let changed = self.right_mut().insert(value);
-                    changed
-                }
+                Greater => self.right_mut().insert(value),
             };
             if changed {
                 self.insert_fixup();
@@ -192,26 +186,26 @@ impl<T: Ord> Node<T> {
 
     // 削除
     fn remove(&mut self, value: &T) {
-        match self.0.as_mut() {
-            None => (),
-            Some(b) => match value.cmp(&b.value) {
-                Less => b.left.remove(value),
+        if self.is_null() {
+        } else {
+            match value.cmp(self.value()) {
+                Less => self.left_mut().remove(value),
                 Equal => {
                     // 右子が空なら左子に差し替え
                     // そうでなければ右部分木の最小を取ってきてそれに差し替え
-                    if b.right.is_null() {
+                    if self.right().is_null() {
                         let n = *self.0.take().unwrap();
                         mem::replace(self, n.left);
                     } else {
-                        let (value, mut double) = b.right.remove_min();
+                        let (value, mut double) = self.right_mut().remove_min();
                         *self.value_mut() = value;
                         if double {
                             double = self.remove_fixup_right();
                         }
                     }
                 }
-                Greater => b.right.remove(value),
-            },
+                Greater => self.right_mut().remove(value),
+            }
         }
     }
 
