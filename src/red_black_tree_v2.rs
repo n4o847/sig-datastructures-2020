@@ -22,115 +22,9 @@ struct NodeInner<T> {
 }
 
 impl<T: Ord> Node<T> {
-    fn new(color: Color, value: T, left: Node<T>, right: Node<T>) -> Self {
-        Node(Some(Box::new(NodeInner {
-            color,
-            value,
-            left,
-            right,
-        })))
-    }
-
-    fn contains(&self, value: &T) -> bool {
-        match &self.0 {
-            None => false,
-            Some(b) => match value.cmp(&b.value) {
-                Less => b.left.contains(value),
-                Equal => true,
-                Greater => b.right.contains(value),
-            },
-        }
-    }
-
-    fn push_black(&mut self) {
-        self.0.as_mut().unwrap().color = Red;
-        self.0.as_mut().unwrap().left.0.as_mut().unwrap().color = Black;
-        self.0.as_mut().unwrap().right.0.as_mut().unwrap().color = Black;
-    }
-
-    fn pull_black(&mut self) {
-        self.0.as_mut().unwrap().color = Black;
-        self.0.as_mut().unwrap().left.0.as_mut().unwrap().color = Red;
-        self.0.as_mut().unwrap().right.0.as_mut().unwrap().color = Red;
-    }
-
-    fn swap_colors(&mut self, other: &mut Self) {
-        mem::swap(
-            &mut self.0.as_mut().unwrap().color,
-            &mut other.0.as_mut().unwrap().color,
-        )
-    }
-
-    fn take_left(&mut self) -> Self {
-        Node(self.0.as_mut().unwrap().left.0.take())
-    }
-
-    fn replace_left(&mut self, left: Self) -> Self {
-        mem::replace(&mut self.0.as_mut().unwrap().left, left)
-    }
-
-    fn take_right(&mut self) -> Self {
-        Node(self.0.as_mut().unwrap().right.0.take())
-    }
-
-    fn replace_right(&mut self, right: Self) -> Self {
-        mem::replace(&mut self.0.as_mut().unwrap().right, right)
-    }
-
-    //    u          w
-    //  w   c  <=  a   u
-    // a b            b c
-    fn rotate_left(&mut self) {
-        let mut w = self.0.take().unwrap();
-        let mut u = w.right.0.take().unwrap();
-        w.right.0 = u.left.0.take();
-        u.left.0.replace(w);
-        self.0.replace(u);
-    }
-
-    //    u          w
-    //  w   c  =>  a   u
-    // a b            b c
-    fn rotate_right(&mut self) {
-        let mut u = self.0.take().unwrap();
-        let mut w = u.left.0.take().unwrap();
-        u.left.0 = w.right.0.take();
-        w.right.0.replace(u);
-        self.0.replace(w);
-    }
-
-    fn flip_left(&mut self) {
-        let mut right = self.take_right();
-        self.swap_colors(&mut right);
-        self.replace_right(right);
-        self.rotate_left();
-    }
-
-    fn flip_right(&mut self) {
-        let mut left = self.take_left();
-        self.swap_colors(&mut left);
-        self.replace_left(left);
-        self.rotate_right();
-    }
-
-    fn left(&mut self) -> &mut Node<T> {
-        &mut self.0.as_mut().unwrap().left
-    }
-
-    fn right(&mut self) -> &mut Node<T> {
-        &mut self.0.as_mut().unwrap().right
-    }
-
+    // 判定系メソッド
     fn is_null(&self) -> bool {
         self.0.is_none()
-    }
-
-    fn color(&mut self) -> &mut Color {
-        &mut self.0.as_mut().unwrap().color
-    }
-
-    fn value(&mut self) -> &mut T {
-        &mut self.0.as_mut().unwrap().value
     }
 
     fn is_red(&self) -> bool {
@@ -144,6 +38,119 @@ impl<T: Ord> Node<T> {
         !self.is_red()
     }
 
+    // 参照系メソッド
+    fn color(&mut self) -> &mut Color {
+        &mut self.0.as_mut().unwrap().color
+    }
+
+    fn value(&mut self) -> &mut T {
+        &mut self.0.as_mut().unwrap().value
+    }
+
+    fn left(&mut self) -> &mut Node<T> {
+        &mut self.0.as_mut().unwrap().left
+    }
+
+    fn right(&mut self) -> &mut Node<T> {
+        &mut self.0.as_mut().unwrap().right
+    }
+
+    // 値を奪う
+    fn take(&mut self) -> Self {
+        Node(self.0.take())
+    }
+
+    // 値を差し替える
+    fn replace(&mut self, src: Node<T>) -> Self {
+        mem::replace(self, src)
+    }
+
+    fn take_left(&mut self) -> Self {
+        self.left().take()
+    }
+
+    fn replace_left(&mut self, left: Self) -> Self {
+        self.left().replace(left)
+    }
+
+    fn take_right(&mut self) -> Self {
+        self.right().take()
+    }
+
+    fn replace_right(&mut self, right: Self) -> Self {
+        self.right().replace(right)
+    }
+
+    fn push_black(&mut self) {
+        *self.color() = Red;
+        *self.left().color() = Black;
+        *self.right().color() = Black;
+    }
+
+    fn pull_black(&mut self) {
+        *self.color() = Black;
+        *self.left().color() = Red;
+        *self.right().color() = Red;
+    }
+
+    // 色交換
+    fn swap_colors(&mut self, other: &mut Self) {
+        mem::swap(self.color(), other.color())
+    }
+
+    // 左回転
+    //    u          w
+    //  w   c  <=  a   u
+    // a b            b c
+    fn rotate_left(&mut self) {
+        let mut w = self.0.take().unwrap();
+        let mut u = w.right.0.take().unwrap();
+        w.right.0 = u.left.0.take();
+        u.left.0.replace(w);
+        self.0.replace(u);
+    }
+
+    // 右回転
+    //    u          w
+    //  w   c  =>  a   u
+    // a b            b c
+    fn rotate_right(&mut self) {
+        let mut u = self.0.take().unwrap();
+        let mut w = u.left.0.take().unwrap();
+        u.left.0 = w.right.0.take();
+        w.right.0.replace(u);
+        self.0.replace(w);
+    }
+
+    // 左回転・色交換
+    fn flip_left(&mut self) {
+        let mut right = self.take_right();
+        self.swap_colors(&mut right);
+        self.replace_right(right);
+        self.rotate_left();
+    }
+
+    // 右回転・色交換
+    fn flip_right(&mut self) {
+        let mut left = self.take_left();
+        self.swap_colors(&mut left);
+        self.replace_left(left);
+        self.rotate_right();
+    }
+
+    // 検索
+    fn contains(&self, value: &T) -> bool {
+        match &self.0 {
+            None => false,
+            Some(b) => match value.cmp(&b.value) {
+                Less => b.left.contains(value),
+                Equal => true,
+                Greater => b.right.contains(value),
+            },
+        }
+    }
+
+    // 挿入
     fn insert(&mut self, value: T) -> bool {
         if self.is_null() {
             self.0.replace(Box::new(NodeInner {
@@ -172,6 +179,7 @@ impl<T: Ord> Node<T> {
         };
     }
 
+    // 挿入に伴う修正
     fn insert_fixup(&mut self) {
         // 左傾性を保つ
         if self.left().is_black() && self.right().is_red() {
@@ -193,6 +201,7 @@ impl<T: Ord> Node<T> {
         }
     }
 
+    // 削除
     fn remove(&mut self, value: &T) {
         match self.0.as_mut() {
             None => (),
@@ -217,6 +226,7 @@ impl<T: Ord> Node<T> {
         }
     }
 
+    // 最小値の削除
     // (取り除かれた値, self が double black であるかどうか)
     fn remove_min(&mut self) -> (T, bool) {
         if self.left().is_null() {
@@ -262,7 +272,7 @@ impl<T: Ord> Node<T> {
         false
     }
 
-    // 右部分木のノード削除の伴う修正
+    // 右部分木のノード削除に伴う修正
     fn remove_fixup_right(&mut self) -> bool {
         // Case 1
         if self.left().is_red() {
