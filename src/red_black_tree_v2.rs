@@ -81,22 +81,6 @@ impl<T: Ord> Node<T> {
         mem::replace(self, src)
     }
 
-    fn take_left(&mut self) -> Self {
-        self.left_mut().take()
-    }
-
-    fn replace_left(&mut self, left: Self) -> Self {
-        self.left_mut().replace(left)
-    }
-
-    fn take_right(&mut self) -> Self {
-        self.right_mut().take()
-    }
-
-    fn replace_right(&mut self, right: Self) -> Self {
-        self.right_mut().replace(right)
-    }
-
     fn push_black(&mut self) {
         *self.color_mut() = Red;
         *self.left_mut().color_mut() = Black;
@@ -119,11 +103,11 @@ impl<T: Ord> Node<T> {
     //  w   c  <=  a   u
     // a b            b c
     fn rotate_left(&mut self) {
-        let mut w = self.0.take().unwrap();
-        let mut u = w.right.0.take().unwrap();
-        w.right.0 = u.left.0.take();
-        u.left.0.replace(w);
-        self.0.replace(u);
+        let mut w = self.take();
+        let mut u = w.right_mut().take();
+        *w.right_mut() = u.left_mut().take();
+        *u.left_mut() = w;
+        *self = u;
     }
 
     // 右回転
@@ -131,26 +115,26 @@ impl<T: Ord> Node<T> {
     //  w   c  =>  a   u
     // a b            b c
     fn rotate_right(&mut self) {
-        let mut u = self.0.take().unwrap();
-        let mut w = u.left.0.take().unwrap();
-        u.left.0 = w.right.0.take();
-        w.right.0.replace(u);
-        self.0.replace(w);
+        let mut u = self.take();
+        let mut w = u.left_mut().take();
+        *u.left_mut() = w.right_mut().take();
+        *w.right_mut() = u;
+        *self = w;
     }
 
     // 左回転・色交換
     fn flip_left(&mut self) {
-        let mut right = self.take_right();
+        let mut right = self.right_mut().take();
         self.swap_colors(&mut right);
-        self.replace_right(right);
+        *self.right_mut() = right;
         self.rotate_left();
     }
 
     // 右回転・色交換
     fn flip_right(&mut self) {
-        let mut left = self.take_left();
+        let mut left = self.left_mut().take();
         self.swap_colors(&mut left);
-        self.replace_left(left);
+        *self.left_mut() = left;
         self.rotate_right();
     }
 
