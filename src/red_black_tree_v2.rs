@@ -61,9 +61,10 @@ impl<T: Ord> Node<T> {
     }
 
     fn is_red(&self) -> bool {
-        match self.0.as_ref() {
-            Some(b) => matches!(b.color, Red),
-            None => false,
+        if self.is_null() {
+            false
+        } else {
+            matches!(self.color(), Red)
         }
     }
 
@@ -79,18 +80,6 @@ impl<T: Ord> Node<T> {
     // 値を差し替える
     fn replace(&mut self, src: Node<T>) -> Self {
         mem::replace(self, src)
-    }
-
-    fn push_black(&mut self) {
-        *self.color_mut() = Red;
-        *self.left_mut().color_mut() = Black;
-        *self.right_mut().color_mut() = Black;
-    }
-
-    fn pull_black(&mut self) {
-        *self.color_mut() = Black;
-        *self.left_mut().color_mut() = Red;
-        *self.right_mut().color_mut() = Red;
     }
 
     // 色交換
@@ -188,11 +177,10 @@ impl<T: Ord> Node<T> {
         }
         if self.is_black() && self.left().is_red() {
             if self.right().is_red() {
-                if self.left().left().is_red() {
-                    self.push_black();
-                }
-                if self.right().left().is_red() {
-                    self.push_black();
+                if self.left().left().is_red() || self.right().left().is_red() {
+                    *self.color_mut() = Red;
+                    *self.left_mut().color_mut() = Black;
+                    *self.right_mut().color_mut() = Black;
                 }
             } else {
                 if self.left().left().is_red() {
