@@ -350,11 +350,15 @@ impl<T: Ord> Node<T> {
 
 pub struct RedBlackTree<T: Ord> {
     root: Node<T>,
+    len: usize,
 }
 
 impl<T: Ord> RedBlackTree<T> {
     pub fn new() -> Self {
-        Self { root: Node(None) }
+        Self {
+            root: Node(None),
+            len: 0,
+        }
     }
 
     pub fn contains(&self, value: &T) -> bool {
@@ -364,12 +368,22 @@ impl<T: Ord> RedBlackTree<T> {
     pub fn insert(&mut self, value: T) -> bool {
         let changed = self.root.insert(value);
         *self.root.color_mut() = Black;
+        if changed {
+            self.len += 1;
+        }
         changed
     }
 
     pub fn remove(&mut self, value: &T) -> bool {
         let (changed, _double) = self.root.remove(value);
+        if changed {
+            self.len -= 1;
+        }
         changed
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
     }
 
     pub fn check(&self) -> Result<(), &str> {
