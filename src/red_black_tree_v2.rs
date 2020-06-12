@@ -185,27 +185,48 @@ impl<T: Ord> Node<T> {
     }
 
     // 削除
-    fn remove(&mut self, value: &T) {
+    // (削除されたかどうか, double black かどうか)
+    fn remove(&mut self, value: &T) -> (bool, bool) {
         if self.is_null() {
+            (false, false)
         } else {
-            match value.cmp(self.value()) {
-                Less => self.left_mut().remove(value),
+            let (change, mut double) = match value.cmp(self.value()) {
+                Less => {
+                    let (changed, mut double) = self.left_mut().remove(value);
+                    if double {
+                        double = self.remove_fixup_left();
+                    }
+                    (changed, double)
+                }
                 Equal => {
                     // 右子が空なら左子に差し替え
                     // そうでなければ右部分木の最小を取ってきてそれに差し替え
                     if self.right().is_null() {
                         let n = *self.0.take().unwrap();
                         mem::replace(self, n.left);
+                        (true, matches!(n.color, Black))
                     } else {
                         let (value, mut double) = self.right_mut().remove_min();
                         *self.value_mut() = value;
                         if double {
                             double = self.remove_fixup_right();
                         }
+                        (true, double)
                     }
                 }
-                Greater => self.right_mut().remove(value),
+                Greater => {
+                    let (changed, mut double) = self.right_mut().remove(value);
+                    if double {
+                        double = self.remove_fixup_right();
+                    }
+                    (changed, double)
+                }
+            };
+            if double && self.is_red() {
+                *self.color_mut() = Black;
+                double = false;
             }
+            (change, double)
         }
     }
 
@@ -228,8 +249,12 @@ impl<T: Ord> Node<T> {
 
     // 左部分木のノード削除に伴う修正
     fn remove_fixup_left(&mut self) -> bool {
+        // 左傾性を保つ
+        if !self.is_null() && self.left().is_black() && self.right().is_red() {
+            self.flip_left();
+        }
         // Case 2
-        if self.right().is_black() {
+        if !self.right().is_null() && self.right().is_black() {
             *self.right_mut().color_mut() = Red;
             self.flip_left();
             if self.left().right().is_black() {
@@ -257,14 +282,19 @@ impl<T: Ord> Node<T> {
 
     // 右部分木のノード削除に伴う修正
     fn remove_fixup_right(&mut self) -> bool {
+        // 左傾性を保つ
+        if !self.is_null() && self.left().is_black() && self.right().is_red() {
+            self.flip_left();
+        }
         // Case 1
-        if self.left().is_red() {
+        if self.is_black() && self.left().is_red() {
             self.flip_right();
             // self.right() は赤であることが確定しているので double にはならない
             let double = self.right_mut().remove_fixup_right();
+            debug_assert!(!double);
             return false;
         // Case 3
-        } else {
+        } else if !self.left().is_null() && self.left().is_black() && self.right().is_black() {
             *self.left_mut().color_mut() = Red;
             self.flip_right();
             if self.right().left().is_red() {
@@ -287,6 +317,30 @@ impl<T: Ord> Node<T> {
                         return true;
                     }
                 }
+            }
+        } else {
+            false
+        }
+    }
+
+    fn check(&self) -> Result<usize, &str> {
+        if self.is_null() {
+            Ok(1)
+        } else {
+            if self.is_red() {
+                if self.left().is_red() || self.right().is_red() {
+                    return Err("Property 9.4 (no-red-edge) not satisfied.");
+                }
+            }
+            let l = self.left().check()?;
+            let r = self.right().check()?;
+            if l != r {
+                return Err("Property 9.3 (black-height) not satisfied.");
+            }
+            if self.is_red() {
+                Ok(l)
+            } else {
+                Ok(l + 1)
             }
         }
     }
@@ -311,8 +365,14 @@ impl<T: Ord> RedBlackTree<T> {
         changed
     }
 
-    pub fn remove(&mut self, value: &T) {
-        self.root.remove(value)
+    pub fn remove(&mut self, value: &T) -> bool {
+        let (changed, double) = self.root.remove(value);
+        changed
+    }
+
+    pub fn check(&self) -> Result<(), &str> {
+        self.root.check()?;
+        Ok(())
     }
 }
 
@@ -375,19 +435,21 @@ mod tests {
         v.shuffle(&mut rng);
         for i in 0..100 {
             if v[i] % 2 == 0 {
+                dbg!(v[i]);
                 assert_eq!(tree.insert(v[i]), true);
+                dbg!(&tree);
+                tree.check().unwrap();
             }
         }
-        dbg!(&tree);
         for i in 0..100 {
             assert_eq!(tree.contains(&i), i % 2 == 0);
         }
         v.shuffle(&mut rng);
         for i in 0..100 {
-            // assert_eq!(tree.remove(&v[i]), v[i] % 2 == 0);
             dbg!(v[i]);
-            tree.remove(&v[i]);
+            assert_eq!(tree.remove(&v[i]), v[i] % 2 == 0);
             dbg!(&tree);
+            tree.check().unwrap();
         }
     }
 }
