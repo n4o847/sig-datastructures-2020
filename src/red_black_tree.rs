@@ -77,11 +77,6 @@ impl<T: Ord> Node<T> {
         Node(self.0.take())
     }
 
-    // 値を差し替える
-    fn replace(&mut self, src: Node<T>) -> Self {
-        mem::replace(self, src)
-    }
-
     // 色交換
     fn swap_colors(&mut self, other: &mut Self) {
         mem::swap(self.color_mut(), other.color_mut())
@@ -143,13 +138,13 @@ impl<T: Ord> Node<T> {
     // 挿入
     fn insert(&mut self, value: T) -> bool {
         if self.is_null() {
-            self.replace(Node(Some(Box::new(NodeInner {
+            *self = Node(Some(Box::new(NodeInner {
                 color: Red,
                 value,
                 left: Node(None),
                 right: Node(None),
-            }))));
-            return true;
+            })));
+            true
         } else {
             let changed = match value.cmp(self.value()) {
                 Less => self.left_mut().insert(value),
@@ -159,8 +154,8 @@ impl<T: Ord> Node<T> {
             if changed {
                 self.insert_fixup();
             }
-            return changed;
-        };
+            changed
+        }
     }
 
     // 挿入に伴う修正
@@ -203,7 +198,7 @@ impl<T: Ord> Node<T> {
                     // そうでなければ右部分木の最小を取ってきてそれに差し替え
                     if self.right().is_null() {
                         let n = *self.0.take().unwrap();
-                        mem::replace(self, n.left);
+                        *self = n.left;
                         (true, matches!(n.color, Black))
                     } else {
                         let (value, mut double) = self.right_mut().remove_min();
@@ -240,7 +235,7 @@ impl<T: Ord> Node<T> {
         if self.left().is_null() {
             // 左が空なら右は黒なので、取り除かれた節が黒 ⇔ double
             let n = *self.0.take().unwrap();
-            mem::replace(self, n.right);
+            *self = n.right;
             let mut double = matches!(n.color, Black);
             if double && self.is_red() {
                 *self.color_mut() = Black;
@@ -387,7 +382,7 @@ impl<T: Ord + fmt::Debug> fmt::Debug for RedBlackTree<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fn show<T: Ord + fmt::Debug>(node: &Node<T>) -> (usize, usize, Vec<String>) {
             if node.is_null() {
-                return (0, 0, vec![]);
+                (0, 0, vec![])
             } else {
                 let (l, li, left) = show(node.left());
                 let (r, ri, right) = show(node.right());
@@ -413,7 +408,7 @@ impl<T: Ord + fmt::Debug> fmt::Debug for RedBlackTree<T> {
                                 .map_or_else(|| " ".repeat(r), |s| s.to_string()),
                     );
                 }
-                return (l + 2 + r, l + 1, v);
+                (l + 2 + r, l + 1, v)
             }
         }
         writeln!(f)?;
