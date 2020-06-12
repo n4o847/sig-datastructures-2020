@@ -375,9 +375,6 @@ impl<T: Ord> RedBlackTree<T> {
 
     pub fn remove(&mut self, value: &T) -> bool {
         let (changed, _double) = self.root.remove(value);
-        // if !self.root.is_null() && self.root.left().is_black() && self.root.right().is_red() {
-        //     self.root.flip_left();
-        // }
         changed
     }
 
@@ -410,14 +407,11 @@ impl<T: Ord + fmt::Debug> fmt::Debug for RedBlackTree<T> {
                 );
                 for i in 0..std::cmp::max(left.len(), right.len()) {
                     v.push(
-                        left.get(i)
-                            .map(|s| s.to_string())
-                            .unwrap_or_else(|| " ".repeat(l))
+                        left.get(i).map_or_else(|| " ".repeat(l), |s| s.to_string())
                             + "  "
                             + &right
                                 .get(i)
-                                .map(|s| s.to_string())
-                                .unwrap_or_else(|| " ".repeat(r)),
+                                .map_or_else(|| " ".repeat(r), |s| s.to_string()),
                     );
                 }
                 return (l + 2 + r, l + 1, v);
@@ -435,7 +429,6 @@ impl<T: Ord + fmt::Debug> fmt::Debug for RedBlackTree<T> {
 #[cfg(test)]
 mod tests {
     use super::RedBlackTree;
-    use rand;
     use rand::seq::SliceRandom;
 
     #[test]
@@ -446,9 +439,9 @@ mod tests {
         v.shuffle(&mut rng);
         for i in 0..100 {
             if v[i] % 2 == 0 {
-                dbg!(v[i]);
+                println!("> insert({:?})", v[i]);
                 assert_eq!(tree.insert(v[i]), true);
-                dbg!(&tree);
+                println!("{:?}", tree);
                 tree.check().unwrap();
             }
         }
@@ -457,10 +450,10 @@ mod tests {
         }
         v.shuffle(&mut rng);
         for i in 0..100 {
-            dbg!(v[i]);
+            println!("> remove({:?})", v[i]);
             if v[i] % 2 == 0 {
                 assert_eq!(tree.remove(&v[i]), true);
-                dbg!(&tree);
+                println!("{:?}", tree);
                 tree.check().unwrap();
             } else {
                 assert_eq!(tree.remove(&v[i]), false);
