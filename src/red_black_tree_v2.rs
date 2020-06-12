@@ -269,9 +269,9 @@ impl<T: Ord> Node<T> {
             if self.left().right().is_black() {
                 if self.is_red() {
                     *self.color_mut() = Black;
-                    return false;
+                    false
                 } else {
-                    return true;
+                    true
                 }
             } else {
                 self.left_mut().rotate_left();
@@ -279,14 +279,15 @@ impl<T: Ord> Node<T> {
                 *self.left_mut().color_mut() = Black;
                 *self.right_mut().color_mut() = Black;
                 if self.right().right().is_black() {
-                    return false;
+                    false
                 } else {
                     self.right_mut().flip_left();
-                    return false;
+                    false
                 }
             }
+        } else {
+            false
         }
-        false
     }
 
     // 右部分木のノード削除に伴う修正
@@ -297,7 +298,7 @@ impl<T: Ord> Node<T> {
             // self.right() は赤であることが確定しているので double にはならない
             let double = self.right_mut().remove_fixup_right();
             debug_assert!(!double);
-            return false;
+            false
         // Case 3
         } else if !self.left().is_null() && self.left().is_black() && self.right().is_black() {
             *self.left_mut().color_mut() = Red;
@@ -307,19 +308,19 @@ impl<T: Ord> Node<T> {
                 self.flip_left();
                 *self.left_mut().color_mut() = Black;
                 *self.right_mut().color_mut() = Black;
-                return false;
+                false
             } else {
                 if self.left().is_red() {
                     *self.left_mut().color_mut() = Black;
                     *self.right_mut().color_mut() = Black;
-                    return false;
+                    false
                 } else {
                     self.flip_left();
                     if self.is_red() {
                         *self.color_mut() = Black;
-                        return false;
+                        false
                     } else {
-                        return true;
+                        true
                     }
                 }
             }
@@ -332,10 +333,8 @@ impl<T: Ord> Node<T> {
         if self.is_null() {
             Ok(1)
         } else {
-            if self.is_red() {
-                if self.left().is_red() || self.right().is_red() {
-                    return Err("Property 9.4 (no-red-edge) not satisfied.");
-                }
+            if self.is_red() && (self.left().is_red() || self.right().is_red()) {
+                return Err("Property 9.4 (no-red-edge) not satisfied.");
             }
             if self.left().is_black() && self.right().is_red() {
                 return Err("Property 9.5 (left-leaning) not satisfied.");
@@ -388,15 +387,15 @@ impl<T: Ord + fmt::Debug> fmt::Debug for RedBlackTree<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fn show<T: Ord + fmt::Debug>(node: &Node<T>) -> (usize, usize, Vec<String>) {
             if node.is_null() {
-                return (0, 0, vec!["".to_string()]);
+                return (0, 0, vec![]);
             } else {
-                let (l, li, left) = show(&node.0.as_ref().unwrap().left);
-                let (r, ri, right) = show(&node.0.as_ref().unwrap().right);
+                let (l, li, left) = show(node.left());
+                let (r, ri, right) = show(node.right());
                 let mut v = vec![];
                 let fs = if node.is_black() {
-                    format!("{:02?}", &node.0.as_ref().unwrap().value)
+                    format!("{:02?}", node.value())
                 } else {
-                    format!("\x1b[31m{:02?}\x1b[m", &node.0.as_ref().unwrap().value)
+                    format!("\x1b[31m{:02?}\x1b[m", node.value())
                 };
                 v.push(
                     " ".repeat(li)
