@@ -222,6 +222,10 @@ impl<T: Ord> Node<T> {
                     (changed, double)
                 }
             };
+            // 左傾性を保つ
+            if !self.is_null() && self.left().is_black() && self.right().is_red() {
+                self.flip_left();
+            }
             if double && self.is_red() {
                 *self.color_mut() = Black;
                 double = false;
@@ -237,11 +241,20 @@ impl<T: Ord> Node<T> {
             // 左が空なら右は黒なので、取り除かれた節が黒 ⇔ double
             let n = *self.0.take().unwrap();
             mem::replace(self, n.right);
-            (n.value, matches!(n.color, Black))
+            let mut double = matches!(n.color, Black);
+            if double && self.is_red() {
+                *self.color_mut() = Black;
+                double = false;
+            }
+            (n.value, double)
         } else {
             let (value, mut double) = self.left_mut().remove_min();
             if double {
                 double = self.remove_fixup_left();
+            }
+            // 左傾性を保つ
+            if !self.is_null() && self.left().is_black() && self.right().is_red() {
+                self.flip_left();
             }
             (value, double)
         }
@@ -249,10 +262,6 @@ impl<T: Ord> Node<T> {
 
     // 左部分木のノード削除に伴う修正
     fn remove_fixup_left(&mut self) -> bool {
-        // 左傾性を保つ
-        if !self.is_null() && self.left().is_black() && self.right().is_red() {
-            self.flip_left();
-        }
         // Case 2
         if !self.right().is_null() && self.right().is_black() {
             *self.right_mut().color_mut() = Red;
@@ -282,10 +291,6 @@ impl<T: Ord> Node<T> {
 
     // 右部分木のノード削除に伴う修正
     fn remove_fixup_right(&mut self) -> bool {
-        // 左傾性を保つ
-        if !self.is_null() && self.left().is_black() && self.right().is_red() {
-            self.flip_left();
-        }
         // Case 1
         if self.is_black() && self.left().is_red() {
             self.flip_right();
@@ -332,6 +337,9 @@ impl<T: Ord> Node<T> {
                     return Err("Property 9.4 (no-red-edge) not satisfied.");
                 }
             }
+            if self.left().is_black() && self.right().is_red() {
+                return Err("Property 9.5 (left-leaning) not satisfied.");
+            }
             let l = self.left().check()?;
             let r = self.right().check()?;
             if l != r {
@@ -366,7 +374,10 @@ impl<T: Ord> RedBlackTree<T> {
     }
 
     pub fn remove(&mut self, value: &T) -> bool {
-        let (changed, double) = self.root.remove(value);
+        let (changed, _double) = self.root.remove(value);
+        // if !self.root.is_null() && self.root.left().is_black() && self.root.right().is_red() {
+        //     self.root.flip_left();
+        // }
         changed
     }
 
@@ -447,9 +458,13 @@ mod tests {
         v.shuffle(&mut rng);
         for i in 0..100 {
             dbg!(v[i]);
-            assert_eq!(tree.remove(&v[i]), v[i] % 2 == 0);
-            dbg!(&tree);
-            tree.check().unwrap();
+            if v[i] % 2 == 0 {
+                assert_eq!(tree.remove(&v[i]), true);
+                dbg!(&tree);
+                tree.check().unwrap();
+            } else {
+                assert_eq!(tree.remove(&v[i]), false);
+            }
         }
     }
 }
