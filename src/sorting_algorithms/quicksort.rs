@@ -6,31 +6,32 @@ where
     T: Ord,
     R: Rng + ?Sized,
 {
-    quicksort_impl(a, 0, a.len(), rng);
+    quicksort_impl(a, rng);
 }
 
-fn quicksort_impl<T, R>(a: &mut [T], i: usize, n: usize, rng: &mut R)
+fn quicksort_impl<T, R>(a: &mut [T], rng: &mut R)
 where
     T: Ord,
     R: Rng + ?Sized,
 {
+    let n = a.len();
     if n <= 1 {
         return;
     }
-    let mut r = i + rng.gen_range(0, n);
-    let mut p = i as isize - 1;
-    let mut j = i;
-    let mut q = i + n;
+    let mut r = rng.gen_range(0, n);
+    let mut p = 0;
+    let mut j = 0;
+    let mut q = n;
     while j < q {
         match a[j].cmp(&a[r]) {
             Ordering::Less => {
-                p += 1;
-                a.swap(j, p as usize);
-                if r == p as usize {
+                a.swap(j, p);
+                if r == p {
                     r = j;
                 } else if r == j {
-                    r = p as usize;
+                    r = p;
                 }
+                p += 1;
                 j += 1;
             }
             Ordering::Equal => {
@@ -47,8 +48,8 @@ where
             }
         }
     }
-    quicksort_impl(a, i, (p - i as isize + 1) as usize, rng);
-    quicksort_impl(a, q, n - (q - i), rng);
+    quicksort_impl(&mut a[..p], rng);
+    quicksort_impl(&mut a[q..], rng);
 }
 
 #[cfg(test)]
